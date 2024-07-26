@@ -174,7 +174,7 @@ const Minesweeper: React.FC = () => {
 
         return newBoard;
       });
-    },
+    }, 
     [board, difficulty, gameOver, win, revealAllCells]
   );
 
