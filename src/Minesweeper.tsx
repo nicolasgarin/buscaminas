@@ -145,9 +145,10 @@ const Minesweeper: React.FC = () => {
   const startNewGame = useCallback(() => {
     if (gameOver || win) {
       updateStats({ gamesPlayed: stats.gamesPlayed + 1 });
-      resetGame();
     }
+    resetGame();
   }, [gameOver, win, stats.gamesPlayed, updateStats, resetGame]);
+
 
   useEffect(() => {
     startNewGame();
@@ -385,26 +386,16 @@ const Minesweeper: React.FC = () => {
           {win ? "¡Has ganado!" : "Game Over"}
         </div>
       )}
-     <button
+      <button
         className={`mt-4 px-4 py-2 rounded ${
-          gameOver || win
-            ? darkMode
-              ? "bg-blue-600 hover:bg-blue-700"
-              : "bg-blue-500 hover:bg-blue-600"
-            : "bg-gray-400 cursor-not-allowed"
+          darkMode
+            ? "bg-blue-600 hover:bg-blue-700"
+            : "bg-blue-500 hover:bg-blue-600"
         } text-white transition-colors duration-200`}
         onClick={startNewGame}
-        disabled={!gameOver && !win}
       >
-        {gameStarted && !gameOver && !win
-          ? "Juego en curso"
-          : "Iniciar nuevo juego"}
+        {gameStarted ? "Reiniciar juego" : "Iniciar nuevo juego"}
       </button>
-      {gameStarted && !gameOver && !win && (
-        <p className="mt-2 text-sm text-gray-500">
-          Debes terminar el juego actual antes de iniciar uno nuevo.
-        </p>
-      )}
     </div>
   );
 };
