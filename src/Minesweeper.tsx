@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Sun, Moon, Bomb, Flag, Heart } from "lucide-react";
 import { GiMineExplosion } from "react-icons/gi";
+import GameStatsComp from "./GameStatsComp";
 
 interface CellProps {
   isMine: boolean;
@@ -18,6 +19,13 @@ interface DifficultySettings {
 
 type DifficultyLevel = "EASY" | "MEDIUM" | "HARD";
 
+interface GameStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  correctFlags: number;
+  bombsExploded: number;
+}
+
 const DIFFICULTY: Record<DifficultyLevel, DifficultySettings> = {
   EASY: { rows: 8, cols: 8, mines: 10 },
   MEDIUM: { rows: 16, cols: 16, mines: 40 },
@@ -27,7 +35,9 @@ const DIFFICULTY: Record<DifficultyLevel, DifficultySettings> = {
 const createBoard = (
   rows: number,
   cols: number,
-  mines: number
+  mines: number,
+  firstClickRow: number | null = null,
+  firstClickCol: number | null = null
 ): CellProps[][] => {
   let board: CellProps[][] = Array(rows)
     .fill(null)
@@ -48,7 +58,13 @@ const createBoard = (
   while (minesPlaced < mines) {
     const row = Math.floor(Math.random() * rows);
     const col = Math.floor(Math.random() * cols);
-    if (!board[row][col].isMine) {
+    if (
+      !board[row][col].isMine &&
+      (firstClickRow === null ||
+        firstClickCol === null ||
+        row !== firstClickRow ||
+        col !== firstClickCol)
+    ) {
       board[row][col].isMine = true;
       minesPlaced++;
     }
@@ -84,6 +100,36 @@ const Minesweeper: React.FC = () => {
   );
   const [lives, setLives] = useState<number>(3);
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [firstClick, setFirstClick] = useState<boolean>(true);
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
+  // Nuevas variables para estadísticas
+  const [stats, setStats] = useState<GameStats>({
+    gamesPlayed: 0,
+    gamesWon: 0,
+    correctFlags: 0,
+    bombsExploded: 0,
+  });
+
+  // Cargar estadísticas del localStorage al iniciar
+  useEffect(() => {
+    const savedStats = localStorage.getItem("minesweeperStats");
+    if (savedStats) {
+      setStats(JSON.parse(savedStats));
+    }
+  }, []);
+
+  // Guardar estadísticas en localStorage cada vez que cambien
+  useEffect(() => {
+    localStorage.setItem("minesweeperStats", JSON.stringify(stats));
+  }, [stats]);
+
+  const updateStats = useCallback((newStats: Partial<GameStats>) => {
+    setStats((prevStats) => ({
+      ...prevStats,
+      ...newStats,
+    }));
+  }, []);
+
 
   const resetGame = useCallback(() => {
     const { rows, cols, mines } = DIFFICULTY[difficulty];
@@ -92,23 +138,37 @@ const Minesweeper: React.FC = () => {
     setWin(false);
     setMinesLeft(mines);
     setLives(3);
+    setFirstClick(true);
+    setGameStarted(false);
   }, [difficulty]);
 
+  const startNewGame = useCallback(() => {
+    if (gameOver || win) {
+      updateStats({ gamesPlayed: stats.gamesPlayed + 1 });
+      resetGame();
+    }
+  }, [gameOver, win, stats.gamesPlayed, updateStats, resetGame]);
+
   useEffect(() => {
-    resetGame();
-  }, [difficulty, resetGame]);
+    startNewGame();
+  }, [difficulty]);
 
   const revealAllCells = useCallback(() => {
     setBoard((prevBoard) => {
       const newBoard = JSON.parse(JSON.stringify(prevBoard));
+      let correctFlags = 0;
       for (let i = 0; i < newBoard.length; i++) {
         for (let j = 0; j < newBoard[i].length; j++) {
           newBoard[i][j].revealed = true;
+          if (newBoard[i][j].flagged && newBoard[i][j].isMine) {
+            correctFlags++;
+          }
         }
       }
+      updateStats({ correctFlags: stats.correctFlags + correctFlags });
       return newBoard;
     });
-  }, []);
+  }, [stats.correctFlags, updateStats]);
 
   const revealCell = useCallback(
     (row: number, col: number) => {
@@ -120,11 +180,23 @@ const Minesweeper: React.FC = () => {
       )
         return;
 
+      if (!gameStarted) {
+        setGameStarted(true);
+      }
+
+      if (firstClick) {
+        const { rows, cols, mines } = DIFFICULTY[difficulty];
+        const newBoard = createBoard(rows, cols, mines, row, col);
+        setBoard(newBoard);
+        setFirstClick(false);
+      }
+
       setBoard((prevBoard) => {
         const newBoard = JSON.parse(JSON.stringify(prevBoard));
         if (newBoard[row][col].isMine) {
           newBoard[row][col].revealed = true;
           newBoard[row][col].exploded = true;
+          updateStats({ bombsExploded: stats.bombsExploded + 1 });
           setLives((prevLives) => {
             const newLives = Math.max(prevLives - 1, 0);
             if (newLives === 0) {
@@ -170,12 +242,14 @@ const Minesweeper: React.FC = () => {
         );
         if (allNonMinesRevealed) {
           setWin(true);
+          updateStats({ gamesWon: stats.gamesWon + 1 });
+          revealAllCells();
         }
 
         return newBoard;
       });
-    }, 
-    [board, difficulty, gameOver, win, revealAllCells]
+    },
+    [board, difficulty, gameOver, win, revealAllCells, firstClick, stats, updateStats, gameStarted]
   );
 
   const flagCell = useCallback(
@@ -189,7 +263,9 @@ const Minesweeper: React.FC = () => {
           setMinesLeft((prevMinesLeft) => Math.max(prevMinesLeft - 1, 0));
         } else if (newBoard[row][col].flagged) {
           newBoard[row][col].flagged = false;
-          setMinesLeft((prevMinesLeft) => Math.min(prevMinesLeft + 1, DIFFICULTY[difficulty].mines));
+          setMinesLeft((prevMinesLeft) =>
+            Math.min(prevMinesLeft + 1, DIFFICULTY[difficulty].mines)
+          );
         }
         return newBoard;
       });
@@ -230,6 +306,9 @@ const Minesweeper: React.FC = () => {
         darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"
       } flex flex-col items-center justify-center p-4`}
     >
+      <div className="mt-6">
+        <GameStatsComp stats={stats} darkMode={darkMode} />
+      </div>
       <div className="mb-4 flex justify-between items-center w-full max-w-md">
         <select
           className={`p-2 rounded ${darkMode ? "bg-gray-700" : "bg-white"}`}
@@ -279,13 +358,19 @@ const Minesweeper: React.FC = () => {
                 </span>
               )}
               {cell.revealed && cell.isMine && cell.exploded && (
-                <span><GiMineExplosion size={16} className="w-4 h-4 fill-white" /></span>
+                <span>
+                  <GiMineExplosion size={16} className="w-4 h-4 fill-white" />
+                </span>
               )}
               {cell.revealed && cell.isMine && !cell.exploded && (
-                <span><Bomb size={16} className="w-4 h-4 fill-white" /></span>
+                <span>
+                  <Bomb size={16} className="w-4 h-4 fill-white" />
+                </span>
               )}
               {!cell.revealed && cell.flagged && (
-                <span><Flag size={16} className="w-4 h-4" /></span>
+                <span>
+                  <Flag size={16} className="w-4 h-4" />
+                </span>
               )}
             </button>
           ))
@@ -300,16 +385,26 @@ const Minesweeper: React.FC = () => {
           {win ? "¡Has ganado!" : "Game Over"}
         </div>
       )}
-      <button
+     <button
         className={`mt-4 px-4 py-2 rounded ${
-          darkMode
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "bg-blue-500 hover:bg-blue-600"
+          gameOver || win
+            ? darkMode
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-blue-500 hover:bg-blue-600"
+            : "bg-gray-400 cursor-not-allowed"
         } text-white transition-colors duration-200`}
-        onClick={resetGame}
+        onClick={startNewGame}
+        disabled={!gameOver && !win}
       >
-        Reiniciar juego
+        {gameStarted && !gameOver && !win
+          ? "Juego en curso"
+          : "Iniciar nuevo juego"}
       </button>
+      {gameStarted && !gameOver && !win && (
+        <p className="mt-2 text-sm text-gray-500">
+          Debes terminar el juego actual antes de iniciar uno nuevo.
+        </p>
+      )}
     </div>
   );
 };
