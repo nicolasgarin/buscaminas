@@ -126,8 +126,7 @@ const Minesweeper: React.FC = () => {
           newBoard[row][col].revealed = true;
           newBoard[row][col].exploded = true;
           setLives((prevLives) => {
-            const newLives = Math.max(prevLives - 1, 0);
-            console.log('resta 1 vida');
+            const newLives = Math.max(prevLives - 0.5, 0);
             if (newLives === 0) {
               setGameOver(true);
               revealAllCells();
@@ -183,15 +182,14 @@ const Minesweeper: React.FC = () => {
     (e: React.MouseEvent, row: number, col: number) => {
       e.preventDefault();
       if (gameOver || win || board[row][col].revealed) return;
-
       setBoard((prevBoard) => {
         const newBoard = JSON.parse(JSON.stringify(prevBoard));
         if (!newBoard[row][col].flagged && minesLeft > 0) {
           newBoard[row][col].flagged = true;
-          setMinesLeft((prevMinesLeft) => Math.max(prevMinesLeft - 1, 0));
+          setMinesLeft((prevMinesLeft) => Math.max(prevMinesLeft - 0.5, 0));
         } else if (newBoard[row][col].flagged) {
           newBoard[row][col].flagged = false;
-          setMinesLeft((prevMinesLeft) => Math.min(prevMinesLeft + 1, DIFFICULTY[difficulty].mines));
+          setMinesLeft((prevMinesLeft) => Math.min(prevMinesLeft + 0.5, DIFFICULTY[difficulty].mines));
         }
         return newBoard;
       });
