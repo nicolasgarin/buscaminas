@@ -7,6 +7,7 @@ interface CellProps {
   neighbor: number;
   revealed: boolean;
   flagged: boolean;
+  exploded: boolean;
 }
 
 interface DifficultySettings {
@@ -38,6 +39,7 @@ const createBoard = (
           neighbor: 0,
           revealed: false,
           flagged: false,
+          exploded: false,
         }))
     );
 
@@ -96,6 +98,18 @@ const Minesweeper: React.FC = () => {
     resetGame();
   }, [difficulty, resetGame]);
 
+  const revealAllCells = useCallback(() => {
+    setBoard((prevBoard) => {
+      const newBoard = JSON.parse(JSON.stringify(prevBoard));
+      for (let i = 0; i < newBoard.length; i++) {
+        for (let j = 0; j < newBoard[i].length; j++) {
+          newBoard[i][j].revealed = true;
+        }
+      }
+      return newBoard;
+    });
+  }, []);
+
   const revealCell = useCallback(
     (row: number, col: number) => {
       if (
@@ -110,11 +124,15 @@ const Minesweeper: React.FC = () => {
         const newBoard = JSON.parse(JSON.stringify(prevBoard));
         if (newBoard[row][col].isMine) {
           newBoard[row][col].revealed = true;
+          newBoard[row][col].exploded = true;
           setLives((prevLives) => {
-            if (prevLives === 1) {
+            const newLives = Math.max(prevLives - 1, 0);
+            console.log('resta 1 vida');
+            if (newLives === 0) {
               setGameOver(true);
+              revealAllCells();
             }
-            return prevLives - 1;
+            return newLives;
           });
         } else {
           const revealAdjacentCells = (
@@ -158,7 +176,7 @@ const Minesweeper: React.FC = () => {
         return newBoard;
       });
     },
-    [board, difficulty, gameOver, win]
+    [board, difficulty, gameOver, win, revealAllCells]
   );
 
   const flagCell = useCallback(
@@ -168,20 +186,24 @@ const Minesweeper: React.FC = () => {
 
       setBoard((prevBoard) => {
         const newBoard = JSON.parse(JSON.stringify(prevBoard));
-        newBoard[row][col].flagged = !newBoard[row][col].flagged;
-        setMinesLeft(
-          (prevMinesLeft) =>
-            prevMinesLeft + (newBoard[row][col].flagged ? -1 : 1)
-        );
+        if (!newBoard[row][col].flagged && minesLeft > 0) {
+          newBoard[row][col].flagged = true;
+          setMinesLeft((prevMinesLeft) => Math.max(prevMinesLeft - 1, 0));
+        } else if (newBoard[row][col].flagged) {
+          newBoard[row][col].flagged = false;
+          setMinesLeft((prevMinesLeft) => Math.min(prevMinesLeft + 1, DIFFICULTY[difficulty].mines));
+        }
         return newBoard;
       });
     },
-    [board, gameOver, win]
+    [board, gameOver, win, minesLeft, difficulty]
   );
 
   const getCellColor = useCallback(
     (cell: CellProps): string => {
-      if (cell.revealed && cell.isMine) return "bg-red-500";
+      if (cell.revealed && cell.isMine) {
+        return cell.exploded ? "bg-red-500" : "bg-blue-600";
+      }
       if (cell.revealed) return darkMode ? "bg-gray-700" : "bg-blue-100";
       return darkMode
         ? "bg-gray-600 hover:bg-gray-500"
@@ -258,8 +280,11 @@ const Minesweeper: React.FC = () => {
                   {cell.neighbor}
                 </span>
               )}
-              {cell.revealed && cell.isMine && (
+              {cell.revealed && cell.isMine && cell.exploded && (
                 <span><GiMineExplosion size={16} className="w-4 h-4 fill-white" /></span>
+              )}
+              {cell.revealed && cell.isMine && !cell.exploded && (
+                <span><Bomb size={16} className="w-4 h-4 fill-white" /></span>
               )}
               {!cell.revealed && cell.flagged && (
                 <span><Flag size={16} className="w-4 h-4" /></span>
