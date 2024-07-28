@@ -102,7 +102,8 @@ const Minesweeper: React.FC = () => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [firstClick, setFirstClick] = useState<boolean>(true);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
-  // Nuevas variables para estadísticas
+  const [gameInitialized, setGameInitialized] = useState<boolean>(false);
+  const [playerName, setPlayerName] = useState<string>("");
   const [stats, setStats] = useState<GameStats>({
     gamesPlayed: 0,
     gamesWon: 0,
@@ -110,11 +111,15 @@ const Minesweeper: React.FC = () => {
     bombsExploded: 0,
   });
 
-  // Cargar estadísticas del localStorage al iniciar
+  
   useEffect(() => {
     const savedStats = localStorage.getItem("minesweeperStats");
+    const savedName = localStorage.getItem("minesweeperPlayerName");
     if (savedStats) {
       setStats(JSON.parse(savedStats));
+    }
+    if (savedName) {
+      setPlayerName(savedName);
     }
   }, []);
 
@@ -122,6 +127,10 @@ const Minesweeper: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("minesweeperStats", JSON.stringify(stats));
   }, [stats]);
+
+  useEffect(() => {
+    localStorage.setItem("minesweeperPlayerName", playerName);
+  }, [playerName]);
 
   const updateStats = useCallback((newStats: Partial<GameStats>) => {
     setStats((prevStats) => ({
@@ -147,12 +156,14 @@ const Minesweeper: React.FC = () => {
       updateStats({ gamesPlayed: stats.gamesPlayed + 1 });
     }
     resetGame();
+    setGameStarted(true);
   }, [gameOver, win, stats.gamesPlayed, updateStats, resetGame]);
 
-
-  useEffect(() => {
-    startNewGame();
-  }, [difficulty]);
+ useEffect(() => {
+    if (gameInitialized) {
+      resetGame();
+    }
+  }, [difficulty, gameInitialized, resetGame]);
 
   const revealAllCells = useCallback(() => {
     setBoard((prevBoard) => {
@@ -301,20 +312,45 @@ const Minesweeper: React.FC = () => {
     return colors[count - 1] || "text-gray-700";
   }, []);
 
+  const handleNameSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setGameInitialized(true);
+  };
+
+  if (!gameInitialized) {
+    return (
+      <div className={`min-h-screen ${darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"} flex flex-col items-center justify-center p-4`}>
+        <form onSubmit={handleNameSubmit} className="flex flex-col items-center">
+          <input
+            type="text"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="Ingresa tu nombre"
+            className={`p-2 rounded mb-4 ${darkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}`}
+            required
+          />
+          <button
+            type="submit"
+            className={`px-4 py-2 rounded ${darkMode ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-500 hover:bg-blue-600"} text-white transition-colors duration-200`}
+          >
+            Iniciar juego
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`min-h-screen ${
-        darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"
-      } flex flex-col items-center justify-center p-4`}
-    >
+    <div className={`min-h-screen ${darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"} flex flex-col items-center justify-center p-4`}>
       <div className="mt-6">
-        <GameStatsComp stats={stats} darkMode={darkMode} />
+        <GameStatsComp stats={stats} darkMode={darkMode} playerName={playerName} />
       </div>
       <div className="mb-4 flex justify-between items-center w-full max-w-md">
         <select
           className={`p-2 rounded ${darkMode ? "bg-gray-700" : "bg-white"}`}
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
+          disabled={gameStarted && !gameOver && !win}
         >
           <option value="EASY">Fácil</option>
           <option value="MEDIUM">Medio</option>
@@ -327,72 +363,67 @@ const Minesweeper: React.FC = () => {
           <span>{lives}</span>
         </div>
         <button
-          className={`p-2 rounded ${
-            darkMode ? "bg-yellow-500" : "bg-blue-500"
-          } text-white`}
+          className={`p-2 rounded ${darkMode ? "bg-yellow-500" : "bg-blue-500"} text-white`}
           onClick={() => setDarkMode(!darkMode)}
         >
           {darkMode ? <Sun size={20} /> : <Moon size={20} />}
         </button>
       </div>
-      <div
-        className={`grid gap-1 ${
-          darkMode ? "bg-gray-800" : "bg-white"
-        } p-4 rounded-lg shadow-lg`}
-        style={{
-          gridTemplateColumns: `repeat(${DIFFICULTY[difficulty].cols}, minmax(0, 1fr))`,
-        }}
-      >
-        {board.map((row, i) =>
-          row.map((cell, j) => (
-            <button
-              key={`${i}-${j}`}
-              className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded ${getCellColor(
-                cell
-              )} transition-colors duration-200`}
-              onClick={() => revealCell(i, j)}
-              onContextMenu={(e) => flagCell(e, i, j)}
-            >
-              {cell.revealed && !cell.isMine && cell.neighbor > 0 && (
-                <span className={getTextColor(cell.neighbor)}>
-                  {cell.neighbor}
-                </span>
-              )}
-              {cell.revealed && cell.isMine && cell.exploded && (
-                <span>
-                  <GiMineExplosion size={16} className="w-4 h-4 fill-white" />
-                </span>
-              )}
-              {cell.revealed && cell.isMine && !cell.exploded && (
-                <span>
-                  <Bomb size={16} className="w-4 h-4 fill-white" />
-                </span>
-              )}
-              {!cell.revealed && cell.flagged && (
-                <span>
-                  <Flag size={16} className="w-4 h-4" />
-                </span>
-              )}
-            </button>
-          ))
-        )}
-      </div>
-      {(gameOver || win) && (
+      {gameStarted ? (
         <div
-          className={`mt-4 text-xl font-bold ${
-            win ? "text-green-500" : "text-red-500"
-          }`}
+          className={`grid gap-1 ${darkMode ? "bg-gray-800" : "bg-white"} p-4 rounded-lg shadow-lg`}
+          style={{
+            gridTemplateColumns: `repeat(${DIFFICULTY[difficulty].cols}, minmax(0, 1fr))`,
+          }}
         >
+          {board.map((row, i) =>
+            row.map((cell, j) => (
+              <button
+                key={`${i}-${j}`}
+                className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded ${getCellColor(cell)} transition-colors duration-200`}
+                onClick={() => revealCell(i, j)}
+                onContextMenu={(e) => flagCell(e, i, j)}
+              >
+                {cell.revealed && !cell.isMine && cell.neighbor > 0 && (
+                  <span className={getTextColor(cell.neighbor)}>{cell.neighbor}</span>
+                )}
+                {cell.revealed && cell.isMine && cell.exploded && (
+                  <span>
+                    <GiMineExplosion size={16} className="w-4 h-4 fill-white" />
+                  </span>
+                )}
+                {cell.revealed && cell.isMine && !cell.exploded && (
+                  <span>
+                    <Bomb size={16} className="w-4 h-4 fill-white" />
+                  </span>
+                )}
+                {!cell.revealed && cell.flagged && (
+                  <span>
+                    <Flag size={16} className="w-4 h-4" />
+                  </span>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
+          Presiona "Iniciar nuevo juego" para comenzar
+        </div>
+      )}
+      {(gameOver || win) && (
+        <div className={`mt-4 text-xl font-bold ${win ? "text-green-500" : "text-red-500"}`}>
           {win ? "¡Has ganado!" : "Game Over"}
         </div>
       )}
       <button
         className={`mt-4 px-4 py-2 rounded ${
-          darkMode
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "bg-blue-500 hover:bg-blue-600"
-        } text-white transition-colors duration-200`}
+          darkMode ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-500 hover:bg-blue-600"
+        } text-white transition-colors duration-200 ${
+          (!gameOver && !win && gameStarted) ? "opacity-50 cursor-not-allowed" : ""
+        }`}
         onClick={startNewGame}
+        disabled={!gameOver && !win && gameStarted}
       >
         {gameStarted ? "Reiniciar juego" : "Iniciar nuevo juego"}
       </button>

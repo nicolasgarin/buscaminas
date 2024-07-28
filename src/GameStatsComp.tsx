@@ -11,9 +11,10 @@ interface GameStats {
 interface GameStatsProps {
   stats: GameStats;
   darkMode?: boolean;
+  playerName?: string;
 }
 
-const GameStatsComp: React.FC<GameStatsProps> = ({ stats, darkMode = false }) => {
+const GameStatsComp: React.FC<GameStatsProps> = ({ stats, darkMode = false, playerName }) => {
   return (
     <div className={`p-4 rounded-lg ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'} shadow-lg`}>
       <h3 className="text-lg font-bold mb-3 flex items-center">
@@ -21,6 +22,10 @@ const GameStatsComp: React.FC<GameStatsProps> = ({ stats, darkMode = false }) =>
         Estadísticas de Juego
       </h3>
       <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center">
+          <GamepadIcon className="mr-2" size={16} />
+          <span>Jugador: {playerName}</span>
+        </div>
         <div className="flex items-center">
           <GamepadIcon className="mr-2" size={16} />
           <span>Partidas jugadas: {stats.gamesPlayed}</span>
