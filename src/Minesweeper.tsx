@@ -341,32 +341,19 @@ const Minesweeper: React.FC = () => {
 
   if (!gameInitialized || isChangingName) {
     return (
-      <div
-        className={`min-h-screen ${
-          darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"
-        } flex flex-col items-center justify-center p-4`}
-      >
-        <form
-          onSubmit={handleNameSubmit}
-          className="flex flex-col items-center"
-        >
+      <div className={`min-h-screen ${darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"} flex flex-col items-center justify-center p-4`}>
+        <form onSubmit={handleNameSubmit} className="flex flex-col items-center">
           <input
             type="text"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
             placeholder="Ingresa tu nombre"
-            className={`p-2 rounded mb-4 ${
-              darkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"
-            }`}
+            className={`p-2 rounded mb-4 ${darkMode ? "bg-gray-700 text-white" : "bg-white text-gray-900"}`}
             required
           />
           <button
             type="submit"
-            className={`px-4 py-2 rounded ${
-              darkMode
-                ? "bg-blue-600 hover:bg-blue-700"
-                : "bg-blue-500 hover:bg-blue-600"
-            } text-white transition-colors duration-200`}
+            className={`px-4 py-2 rounded ${darkMode ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-500 hover:bg-blue-600"} text-white transition-colors duration-200`}
           >
             {isChangingName ? "Guardar nombre" : "Iniciar juego"}
           </button>
@@ -374,11 +361,7 @@ const Minesweeper: React.FC = () => {
         {!isChangingName && (
           <button
             onClick={resetStats}
-            className={`mt-4 px-4 py-2 rounded ${
-              darkMode
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-red-500 hover:bg-red-600"
-            } text-white transition-colors duration-200`}
+            className={`mt-4 px-4 py-2 rounded ${darkMode ? "bg-red-600 hover:bg-red-700" : "bg-red-500 hover:bg-red-600"} text-white transition-colors duration-200`}
           >
             Reiniciar estadísticas
           </button>
@@ -386,19 +369,11 @@ const Minesweeper: React.FC = () => {
       </div>
     );
   }
-
+  
   return (
-    <div
-      className={`min-h-screen ${
-        darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"
-      } flex flex-col items-center justify-center p-4`}
-    >
+    <div className={`min-h-screen ${darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"} flex flex-col items-center justify-center p-4`}>
       <div className="mt-6">
-        <GameStatsComp
-          stats={stats}
-          darkMode={darkMode}
-          playerName={playerName}
-        />
+        <GameStatsComp stats={stats} darkMode={darkMode} playerName={playerName} />
       </div>
       <div className="mb-4 flex justify-between items-center w-full max-w-md">
         <select
@@ -418,9 +393,7 @@ const Minesweeper: React.FC = () => {
           <span>{lives}</span>
         </div>
         <button
-          className={`p-2 rounded ${
-            darkMode ? "bg-yellow-500" : "bg-blue-500"
-          } text-white`}
+          className={`p-2 rounded ${darkMode ? "bg-yellow-500" : "bg-blue-500"} text-white`}
           onClick={() => setDarkMode(!darkMode)}
         >
           {darkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -428,9 +401,7 @@ const Minesweeper: React.FC = () => {
       </div>
       {gameStarted ? (
         <div
-          className={`grid gap-1 ${
-            darkMode ? "bg-gray-800" : "bg-white"
-          } p-4 rounded-lg shadow-lg`}
+          className={`grid gap-1 ${darkMode ? "bg-gray-800" : "bg-white"} p-4 rounded-lg shadow-lg`}
           style={{
             gridTemplateColumns: `repeat(${DIFFICULTY[difficulty].cols}, minmax(0, 1fr))`,
           }}
@@ -439,45 +410,50 @@ const Minesweeper: React.FC = () => {
             row.map((cell, j) => (
               <button
                 key={`${i}-${j}`}
-                className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded ${getCellColor(
-                  cell
-                )} transition-colors duration-200`}
+                className={`w-8 h-8 flex items-center justify-center text-sm font-bold rounded ${getCellColor(cell)} transition-colors duration-200`}
                 onClick={() => revealCell(i, j)}
                 onContextMenu={(e) => flagCell(e, i, j)}
               >
-                {/* ... (el contenido de las celdas permanece igual) */}
-              </button>
+                {cell.revealed && !cell.isMine && cell.neighbor > 0 && (
+                  <span className={getTextColor(cell.neighbor)}>
+                    {cell.neighbor}
+                  </span>
+                )}
+                {cell.revealed && cell.isMine && cell.exploded && (
+                  <span>
+                    <GiMineExplosion size={16} className="w-4 h-4 fill-white" />
+                  </span>
+                )}
+                {cell.revealed && cell.isMine && !cell.exploded && (
+                  <span>
+                    <Bomb size={16} className="w-4 h-4 fill-white" />
+                  </span>
+                )}
+                {!cell.revealed && cell.flagged && (
+                  <span>
+                    <Flag size={16} className="w-4 h-4" />
+                  </span>
+                )}
+               </button>
             ))
           )}
         </div>
       ) : (
-        <div
-          className={`text-xl font-bold ${
-            darkMode ? "text-white" : "text-gray-900"
-          }`}
-        >
+        <div className={`text-xl font-bold ${darkMode ? "text-white" : "text-gray-900"}`}>
           Presiona "Iniciar nuevo juego" para comenzar
         </div>
       )}
       {(gameOver || win) && (
-        <div
-          className={`mt-4 text-xl font-bold ${
-            win ? "text-green-500" : "text-red-500"
-          }`}
-        >
+        <div className={`mt-4 text-xl font-bold ${win ? "text-green-500" : "text-red-500"}`}>
           {win ? "¡Has ganado!" : "Game Over"}
         </div>
       )}
       <div className="mt-4 flex space-x-4">
         <button
           className={`px-4 py-2 rounded ${
-            darkMode
-              ? "bg-blue-600 hover:bg-blue-700"
-              : "bg-blue-500 hover:bg-blue-600"
+            darkMode ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-500 hover:bg-blue-600"
           } text-white transition-colors duration-200 ${
-            !gameOver && !win && gameStarted
-              ? "opacity-50 cursor-not-allowed"
-              : ""
+            (!gameOver && !win && gameStarted) ? "opacity-50 cursor-not-allowed" : ""
           }`}
           onClick={startNewGame}
           disabled={!gameOver && !win && gameStarted}
@@ -486,9 +462,7 @@ const Minesweeper: React.FC = () => {
         </button>
         <button
           className={`px-4 py-2 rounded ${
-            darkMode
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-green-500 hover:bg-green-600"
+            darkMode ? "bg-green-600 hover:bg-green-700" : "bg-green-500 hover:bg-green-600"
           } text-white transition-colors duration-200`}
           onClick={() => setIsChangingName(true)}
         >
