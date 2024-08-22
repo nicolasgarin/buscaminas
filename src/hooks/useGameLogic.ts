@@ -10,12 +10,10 @@ export const useGameLogic = (difficulty: DifficultyLevel) => {
     DIFFICULTY[difficulty].mines
   );
   const [lives, setLives] = useState<number>(3);
-  const [darkMode, setDarkMode] = useState<boolean>(false);
   const [firstClick, setFirstClick] = useState<boolean>(true);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [gameInitialized, setGameInitialized] = useState<boolean>(false);
   const [playerName, setPlayerName] = useState<string>("");
-  const [isChangingName, setIsChangingName] = useState<boolean>(false);
   const [stats, setStats] = useState<GameStats>({
     gamesPlayed: 0,
     gamesWon: 0,
@@ -205,50 +203,6 @@ export const useGameLogic = (difficulty: DifficultyLevel) => {
     },
     [board, gameOver, win, minesLeft, difficulty]
   );
-
-  const getCellColor = useCallback(
-    (cell: CellProps): string => {
-      if (cell.revealed && cell.isMine) {
-        return cell.exploded ? "bg-red-500" : "bg-blue-600";
-      }
-      if (cell.revealed) return darkMode ? "bg-gray-700" : "bg-blue-100";
-      return darkMode
-        ? "bg-gray-600 hover:bg-gray-500"
-        : "bg-blue-200 hover:bg-blue-300";
-    },
-    [darkMode]
-  );
-
-  const getTextColor = useCallback((count: number): string => {
-    const colors = [
-      "text-blue-500",
-      "text-green-500",
-      "text-yellow-500",
-      "text-orange-500",
-      "text-red-500",
-      "text-purple-500",
-      "text-pink-500",
-      "text-indigo-500",
-    ];
-    return colors[count - 1] || "text-gray-700";
-  }, []);
-
-  const handleNameSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setGameInitialized(true);
-    setIsChangingName(false);
-  };
-
-  const resetStats = () => {
-    const newStats: GameStats = {
-      gamesPlayed: 0,
-      gamesWon: 0,
-      correctFlags: 0,
-      bombsExploded: 0,
-    };
-    setStats(newStats);
-    localStorage.setItem("minesweeperStats", JSON.stringify(newStats));
-  };
 
   return {
     board,

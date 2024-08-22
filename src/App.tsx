@@ -21,7 +21,6 @@ const App: React.FC = () => {
     lives,
     gameStarted,
     stats,
-    resetGame,
     startNewGame,
     revealCell,
     flagCell,
