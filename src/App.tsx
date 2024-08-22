@@ -96,9 +96,9 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"} flex flex-col items-center justify-center p-4`}>
+    <div className={`min-h-screen gap-8 ${darkMode ? "bg-gray-900 text-white" : "bg-blue-50 text-gray-900"} flex flex-col items-center justify-center p-4`}>
       <GameStatsComp stats={stats} darkMode={darkMode} playerName={playerName} />
-      <div className="mb-4 flex justify-between items-center w-full max-w-md">
+      <div className="mb-4 flex justify-between items-center w-full max-w-xl">
         <DifficultySelector
           difficulty={difficulty}
           setDifficulty={setDifficulty}
