@@ -38,7 +38,7 @@ const GameControls: React.FC<GameControlsProps> = ({
       >
         {darkMode ? <Sun size={20} /> : <Moon size={20} />}
       </button>
-      <div className="mt-4 flex space-x-4">
+      <div className="flex space-x-4">
         <button
           className={`px-4 py-2 rounded ${
             darkMode ? "bg-blue-600 hover:bg-blue-700" : "bg-blue-500 hover:bg-blue-600"
